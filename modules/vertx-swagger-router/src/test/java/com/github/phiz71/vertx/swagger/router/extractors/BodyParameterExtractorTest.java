@@ -78,6 +78,24 @@ public class BodyParameterExtractorTest {
                 }
             }
         });
+
+        eventBus.<JsonObject>consumer("POST_body_properties_required").handler(message -> {
+            if("application/xml".equals(message.headers().get(HttpHeaders.CONTENT_TYPE))) {
+                message.reply(message.body().getString("bodyPropertiesRequired"));
+            } else {
+                try {
+                    BodyType body = null;
+                    if (message.body().getJsonObject("bodyPropertiesRequired") != null) {
+                        body = Json.mapper.readValue(message.body().getJsonObject("bodyPropertiesRequired").encode(), BodyType.class);
+                    }
+                    message.reply(Json.encode(body));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    message.fail(500, e.getMessage());
+                }
+            }
+        });
+
         eventBus.<JsonObject> consumer("POST_body_not_required").handler(message -> {
             if("application/xml".equals(message.headers().get(HttpHeaders.CONTENT_TYPE))) {
                 message.reply(message.body().getString("bodyNotRequired"));
@@ -110,7 +128,6 @@ public class BodyParameterExtractorTest {
         });
         // init http client
         httpClient = Vertx.vertx().createHttpClient();
-
     }
 
     @Test
@@ -143,6 +160,32 @@ public class BodyParameterExtractorTest {
         })
         .putHeader(HttpHeaders.CONTENT_TYPE, "application/xml")
         .end(bodyReqXml);
+    }
+
+    @Test
+    public void testOkAddBodyWithRequiredPropertiesMissing(TestContext context) {
+        Async async = context.async();
+        BodyType bodyReq = new BodyType();
+        bodyReq.setId(1L);
+        HttpClientRequest req = httpClient.post(TEST_PORT, TEST_HOST, "/body/properties/required");
+        req.handler(response -> {
+            context.assertEquals(response.statusCode(), 400);
+            async.complete();
+        }).end(Json.encode(bodyReq));
+    }
+
+    @Test
+    public void testOkAddBodyWithRequiredPropertiesAllPresent(TestContext context) {
+        Async async = context.async();
+        BodyType bodyReq = new BodyType(1L, "body 1");
+        HttpClientRequest req = httpClient.post(TEST_PORT, TEST_HOST, "/body/properties/required");
+        req.handler(response -> {
+            context.assertEquals(response.statusCode(), 200);
+            response.bodyHandler(body -> {
+                context.assertEquals(Json.encode(bodyReq), body.toString());
+                async.complete();
+            });
+        }).end(Json.encode(bodyReq));
     }
 
     @Test

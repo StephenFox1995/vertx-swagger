@@ -29,6 +29,35 @@
         }
       }
     },
+    "/body/properties/required": {
+      "post": {
+        "summary": "service where the properties of the body are required.",
+        "parameters": [
+          {
+            "name": "bodyPropertiesRequired",
+            "in": "body",
+            "required": "true",
+            "description": "required body with required properties",
+            "schema": {
+              "required": [
+                "name", "id"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+
+        }
+      }
+    },
     "/body/not/required": {
       "post": {
         "description": "service where body is not needed",
